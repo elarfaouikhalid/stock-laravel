@@ -48,6 +48,8 @@ Route::prefix("v1")->name("login.v1")->group(function() {
     Route::post("store/invoice", [DashboardController::class, "createInvoice"]);
     //companies 
     Route::post("Admin/company", [DashboardController::class, "createCompany"]);
+    //payment
+    Route::get("payment/customer", [DashboardController::class, "getallclienthasinvoice"]);
 
 });
 

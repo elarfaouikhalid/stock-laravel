@@ -337,7 +337,7 @@ class DashboardController extends Controller
     public function createInvoice(Request $request) {
         $validator = Validator::make($request->all(), [
             'customer_id' => 'required',
-            'order_id' => 'required',
+            // 'order_id' => 'required',
             'total_amount' => 'required',
             'invoices' => 'required|array',
         ]);
@@ -353,10 +353,15 @@ class DashboardController extends Controller
         
         try {
             $validatedData = $validator->validated();
+
+            $order = new Order([
+                'customer_id' => $request->customer_id
+            ]);
+            $order->save();
             
             $invoice = new Invoice([
                 'customer_id' => $request->customer_id,
-                'order_id' => $request->order_id,
+                'order_id' => $order->id,
                 'total_amount' => $request->total_amount,
             ]);
             $invoice->save();
@@ -439,4 +444,24 @@ class DashboardController extends Controller
             ], 422);
         }
     }
+    //payments
+    public function getallclienthasinvoice(Request $request) {
+        $lastOrdersForClients = Order::select('*')
+                                ->from(DB::raw('(SELECT MAX(created_at) as last_order_date, customer_id FROM orders GROUP BY customer_id) as sub'))
+                                ->get();
+
+                                    $js = [];
+                                foreach($lastOrdersForClients as $last) {
+                                    // dump($last);
+                                    $clients = Customer::where("id", "in", $last->customer_id)
+                                            // ->where("orders.created_at", ">", )
+                                            ->join("invoices", "invoices.order_id", $last->id)
+                                            ->get();
+                            
+                                }
+                                //  return "yes";   
+        return response()->json([
+                $clients
+        ]);
+        }
 }
