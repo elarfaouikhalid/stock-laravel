@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ProductRequest;
 use App\Models\Company;
+use App\Models\Payment;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Validator;
 
@@ -446,22 +447,28 @@ class DashboardController extends Controller
     }
     //payments
     public function getallclienthasinvoice(Request $request) {
-        $lastOrdersForClients = Order::select('*')
-                                ->from(DB::raw('(SELECT MAX(created_at) as last_order_date, customer_id FROM orders GROUP BY customer_id) as sub'))
-                                ->get();
+        $invoices = Invoice::select('customer_id')->get();
 
-                                    $js = [];
-                                foreach($lastOrdersForClients as $last) {
-                                    // dump($last);
-                                    $clients = Customer::where("id", "in", $last->customer_id)
-                                            // ->where("orders.created_at", ">", )
-                                            ->join("invoices", "invoices.order_id", $last->id)
-                                            ->get();
-                            
-                                }
-                                //  return "yes";   
-        return response()->json([
-                $clients
-        ]);
-        }
+        $payments = Payment::select('invoice_id')->get();
+
+        $clients = Customer::select('customers.*')
+            ->join("orders", "orders.customer_id", "=", "customers.id")
+            ->join("invoices", "invoices.customer_id", "=", "customers.id")
+            ->whereIn('customers.id', $invoices->pluck('customer_id'))
+            ->whereNotIn('invoices.id', $payments->pluck('invoice_id'))
+            ->distinct()
+            ->get();
+
+        return response()->json(["clients" => $clients]);
+
+    }
+    public function getclientbyId(Request $request) {
+        $client = Customer::findOrFail($request->id);
+        $clients = Customer::select('invoices.*')
+            ->join("orders", "orders.customer_id", "=", "customers.id")
+            ->join("invoices", "invoices.customer_id", "=", "customers.id")
+            ->where('customers.id', $invoices->pluck('customer_id'))
+            ->get();
+        
+    }
 }
